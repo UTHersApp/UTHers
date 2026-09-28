@@ -1,0 +1,23 @@
+namespace UTHers.Application.UniversityConnections.Portal;
+
+public sealed class ConnectPortalCommand
+{
+    public ConnectPortalCommand(string username, string password, string challengeToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+        ArgumentException.ThrowIfNullOrWhiteSpace(challengeToken);
+
+        Username = username;
+        Password = password;
+        ChallengeToken = challengeToken;
+    }
+
+    public string Username { get; }
+
+    public string Password { get; }
+
+    public string ChallengeToken { get; }
+
+    public override string ToString() => $"{nameof(ConnectPortalCommand)} {{ Sensitive data redacted }}";
+}
