@@ -57,6 +57,58 @@ public sealed class BackendArchitectureTests
         }
     }
 
+    [Fact]
+    public void PublicResponseContractsDoNotExposeSensitiveCredentialFields()
+    {
+        var forbiddenTerms = new[]
+        {
+            "Authorization",
+            "Cookie",
+            "Credential",
+            "Password",
+            "Session",
+            "Token"
+        };
+
+        var responseFiles = Directory.GetFiles(FindContractsRoot(), "*Response.cs", SearchOption.AllDirectories);
+        Assert.NotEmpty(responseFiles);
+
+        foreach (var responseFile in responseFiles)
+        {
+            var responseSource = File.ReadAllText(responseFile);
+
+            foreach (var forbiddenTerm in forbiddenTerms)
+            {
+                Assert.DoesNotContain(forbiddenTerm, responseSource, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public void IdentityContractsDoNotUseUniversityIdentityFields()
+    {
+        var forbiddenTerms = new[]
+        {
+            "MSSV",
+            "StudentId",
+            "UniversityUsername"
+        };
+
+        var identityRoot = Path.Combine(FindContractsRoot(), "Identity");
+        var identityFiles = Directory.GetFiles(identityRoot, "*.cs", SearchOption.AllDirectories);
+        Assert.NotEmpty(identityFiles);
+
+        foreach (var identityFile in identityFiles)
+        {
+            var identitySource = File.ReadAllText(identityFile);
+
+            foreach (var forbiddenTerm in forbiddenTerms)
+            {
+                Assert.DoesNotContain(forbiddenTerm, identitySource, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
     private static XDocument LoadProject(string projectName)
     {
         var projectPath = Path.Combine(FindBackendRoot(), "src", projectName, $"{projectName}.csproj");
@@ -127,5 +179,10 @@ public sealed class BackendArchitectureTests
         }
 
         throw new DirectoryNotFoundException("Could not locate the backend root containing UTHers.sln.");
+    }
+
+    private static string FindContractsRoot()
+    {
+        return Path.Combine(FindBackendRoot(), "src", "UTHers.Contracts");
     }
 }
