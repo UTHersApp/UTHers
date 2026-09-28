@@ -35,14 +35,14 @@ Bản v2 chốt baseline kỹ thuật hiện tại của UTHers:
 ├── apps/
 │   ├── web/
 │   │   └── AGENTS.md
-│   └── api/
+│   └── backend/
 │       └── AGENTS.md
 └── tests/
     └── e2e/
         └── AGENTS.md
 ```
 
-`apps/web`, `apps/api` và `tests/e2e` là đường dẫn đề xuất. Nếu scaffold thực tế dùng đường dẫn khác, di chuyển `AGENTS.md` tương ứng vào đúng root để Codex áp dụng rule theo cây thư mục.
+`apps/web`, `apps/backend` và `tests/e2e` là đường dẫn đề xuất. Nếu scaffold thực tế dùng đường dẫn khác, di chuyển `AGENTS.md` tương ứng vào đúng root để Codex áp dụng rule theo cây thư mục.
 
 ### Ý nghĩa “full automated testing”
 
@@ -96,14 +96,14 @@ Version 2 locks the current UTHers technical baseline:
 ├── apps/
 │   ├── web/
 │   │   └── AGENTS.md
-│   └── api/
+│   └── backend/
 │       └── AGENTS.md
 └── tests/
     └── e2e/
         └── AGENTS.md
 ```
 
-`apps/web`, `apps/api`, and `tests/e2e` are proposed paths. If the actual scaffold uses different paths, move the nested `AGENTS.md` files to the real roots so hierarchical instructions apply correctly.
+`apps/web`, `apps/backend`, and `tests/e2e` are proposed paths. If the actual scaffold uses different paths, move the nested `AGENTS.md` files to the real roots so hierarchical instructions apply correctly.
 
 ### Meaning of “full automated testing”
 
