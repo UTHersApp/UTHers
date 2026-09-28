@@ -1,0 +1,131 @@
+# UTHers Codex execution policy
+# VI: Rule command cấp project. Project phải được trust để Codex load .codex/rules.
+# EN: Project-level command rules. The project must be trusted for Codex to load .codex/rules.
+
+# ---------- Safe read-only Git commands ----------
+prefix_rule(
+    pattern = ["git", ["status", "diff", "log", "show", "rev-parse"]],
+    decision = "allow",
+    justification = "Read-only Git inspection is allowed / Cho phép đọc trạng thái Git",
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "--show-current"],
+    decision = "allow",
+    justification = "Reading the current branch is allowed / Cho phép xem branch hiện tại",
+)
+
+# ---------- Git write/history actions are user-owned ----------
+prefix_rule(
+    pattern = ["git", ["add", "commit", "push", "merge", "rebase", "tag"]],
+    decision = "forbidden",
+    justification = "Git write/history/remote actions are user-owned; inspect with git status/diff instead / Git write/history/remote do người dùng thực hiện; chỉ dùng status/diff để kiểm tra",
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Destructive Git reset is not allowed; use git diff/status and ask the user for recovery decisions / Không được reset --hard; hãy kiểm tra diff/status và hỏi người dùng",
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Destructive Git clean is not allowed; remove only task-owned generated files explicitly / Không được git clean; chỉ xóa file sinh ra bởi task một cách rõ ràng",
+)
+
+prefix_rule(
+    pattern = ["git", ["checkout", "switch", "restore", "stash"]],
+    decision = "prompt",
+    justification = "Working-tree/branch changes require explicit user approval / Thay đổi working tree hoặc branch cần người dùng phê duyệt",
+)
+
+# ---------- npm dependency changes require approval ----------
+prefix_rule(
+    pattern = ["npm", ["install", "i", "add", "update", "uninstall", "remove"]],
+    decision = "prompt",
+    justification = "Dependency changes require explicit user approval / Thay đổi dependency cần người dùng phê duyệt",
+)
+
+prefix_rule(
+    pattern = ["npx"],
+    decision = "prompt",
+    justification = "npx may download or execute packages; ask first / npx có thể tải hoặc chạy package nên phải hỏi trước",
+)
+
+# Installing exactly what is already locked is allowed.
+# Cho phép cài đúng dependency đã khóa trong lockfile.
+prefix_rule(
+    pattern = ["npm", "ci"],
+    decision = "allow",
+    justification = "npm ci follows the committed lockfile / npm ci dùng dependency đã khóa trong lockfile",
+)
+
+# Common verification commands are allowed when scripts already exist.
+# Cho phép command verification phổ biến khi script đã tồn tại.
+prefix_rule(
+    pattern = ["npm", "test"],
+    decision = "allow",
+    justification = "Running the declared npm test command is verification / npm test là command verification",
+)
+
+prefix_rule(
+    pattern = ["npm", "run", ["test", "lint", "build", "typecheck"]],
+    decision = "allow",
+    justification = "Known repository verification scripts are allowed / Cho phép các script verification chuẩn của repository",
+)
+
+# ---------- .NET package changes require approval ----------
+prefix_rule(
+    pattern = ["dotnet", ["add", "remove"]],
+    decision = "prompt",
+    justification = "NuGet/project dependency changes require explicit user approval / Thay đổi dependency .NET cần người dùng phê duyệt",
+)
+
+prefix_rule(
+    pattern = ["dotnet", "tool", ["install", "update", "uninstall"]],
+    decision = "prompt",
+    justification = ".NET tool changes require explicit user approval / Thay đổi .NET tool cần người dùng phê duyệt",
+)
+
+prefix_rule(
+    pattern = ["dotnet", "restore"],
+    decision = "allow",
+    justification = "Restoring declared dependencies is allowed / Cho phép restore dependency đã khai báo",
+)
+
+prefix_rule(
+    pattern = ["dotnet", ["build", "test"]],
+    decision = "allow",
+    justification = "Build and test are verification commands / Build và test là command verification",
+)
+
+# ---------- Database migration actions require approval ----------
+prefix_rule(
+    pattern = ["dotnet", "ef", "migrations", ["add", "remove"]],
+    decision = "prompt",
+    justification = "Database migration changes require explicit user approval / Thay đổi migration cần người dùng phê duyệt",
+)
+
+prefix_rule(
+    pattern = ["dotnet", "ef", "database", ["update", "drop"]],
+    decision = "prompt",
+    justification = "Database mutation requires explicit user approval / Thay đổi database cần người dùng phê duyệt",
+)
+
+# ---------- Container mutation/build setup ----------
+# Testcontainers itself runs containers during tests. Direct Docker lifecycle commands may alter the host,
+# so require user approval rather than granting broad Docker access.
+# Testcontainers có thể chạy container trong test. Docker command trực tiếp có thể thay đổi host nên phải hỏi.
+prefix_rule(
+    pattern = ["docker", ["run", "compose", "build", "pull", "rm", "rmi", "system"]],
+    decision = "prompt",
+    justification = "Direct Docker lifecycle operations require user approval; prefer repository test commands / Docker lifecycle trực tiếp cần người dùng phê duyệt; ưu tiên test command của repo",
+)
+
+# ---------- GitHub remote mutations ----------
+prefix_rule(
+    pattern = ["gh", "pr", ["create", "merge", "close", "reopen"]],
+    decision = "forbidden",
+    justification = "Remote repository mutations are user-owned; prepare changes locally and let the user create/merge the PR / Thao tác remote do người dùng thực hiện",
+)

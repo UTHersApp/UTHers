@@ -1,0 +1,6 @@
+# VI: Cấu hình an toàn mặc định cho Codex trong repository UTHers.
+# EN: Safe default Codex configuration for the UTHers repository.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+approvals_reviewer = "user"
