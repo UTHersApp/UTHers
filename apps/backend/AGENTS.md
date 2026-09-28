@@ -1,4 +1,4 @@
-# UTHers API — ASP.NET Core .NET 10 Instructions / Hướng dẫn ASP.NET Core .NET 10
+# UTHers Backend — ASP.NET Core .NET 10 Instructions / Hướng dẫn ASP.NET Core .NET 10
 
 These rules extend the repository-root `AGENTS.md`.
 Các rule này bổ sung cho `AGENTS.md` ở root repository.
