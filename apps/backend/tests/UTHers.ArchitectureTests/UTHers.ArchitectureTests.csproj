@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UTHers.Application\UTHers.Application.csproj" />
+    <ProjectReference Include="..\..\src\UTHers.Contracts\UTHers.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

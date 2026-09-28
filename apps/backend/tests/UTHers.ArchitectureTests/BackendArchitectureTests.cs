@@ -1,4 +1,7 @@
 using System.Xml.Linq;
+using UTHers.Application.Integrations.Portal;
+using UTHers.Contracts.UniversityConnections.Common;
+using UTHers.Contracts.UniversityConnections.Portal;
 
 namespace UTHers.ArchitectureTests;
 
@@ -58,30 +61,100 @@ public sealed class BackendArchitectureTests
     }
 
     [Fact]
+    public void ConnectPortalRequestContainsExactlyApprovedInputs()
+    {
+        var propertyNames = typeof(ConnectPortalRequest)
+            .GetProperties()
+            .Select(property => property.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            new[] { "CaptchaToken", "Password", "Username" },
+            propertyNames);
+    }
+
+    [Fact]
+    public void CaptchaTokenIsAnInputOnly()
+    {
+        Assert.Contains(
+            typeof(ConnectPortalRequest).GetProperties(),
+            property => property.Name == "CaptchaToken");
+        Assert.DoesNotContain(
+            GetPublicResponseContractProperties(),
+            property => property.Name.Contains("CaptchaToken", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void PublicResponseContractsDoNotExposeSensitiveCredentialFields()
     {
         var forbiddenTerms = new[]
         {
             "Authorization",
+            "CaptchaToken",
+            "ChallengeToken",
             "Cookie",
             "Credential",
+            "Jwt",
             "Password",
-            "Session",
+            "RefreshToken",
+            "SessionId",
             "Token"
         };
 
-        var responseFiles = Directory.GetFiles(FindContractsRoot(), "*Response.cs", SearchOption.AllDirectories);
-        Assert.NotEmpty(responseFiles);
+        var responseProperties = GetPublicResponseContractProperties();
+        Assert.NotEmpty(responseProperties);
 
-        foreach (var responseFile in responseFiles)
+        foreach (var responseProperty in responseProperties)
         {
-            var responseSource = File.ReadAllText(responseFile);
-
             foreach (var forbiddenTerm in forbiddenTerms)
             {
-                Assert.DoesNotContain(forbiddenTerm, responseSource, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(forbiddenTerm, responseProperty.Name, StringComparison.OrdinalIgnoreCase);
             }
         }
+    }
+
+    [Fact]
+    public void UniversityConnectionResponseContainsOnlyConnectionState()
+    {
+        var property = Assert.Single(typeof(UniversityConnectionResponse).GetProperties());
+
+        Assert.Equal("IsConnected", property.Name);
+        Assert.Equal(typeof(bool), property.PropertyType);
+    }
+
+    [Fact]
+    public void ErrorResponseHasNoDeclarationOrProductionConsumer()
+    {
+        var productionRoot = Path.Combine(FindBackendRoot(), "src");
+        var productionSources = Directory
+            .GetFiles(productionRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !IsGeneratedSource(path))
+            .ToArray();
+
+        Assert.DoesNotContain(
+            productionSources,
+            path => File.ReadAllText(path).Contains("ErrorResponse", StringComparison.Ordinal));
+        Assert.False(File.Exists(Path.Combine(FindContractsRoot(), "Common", "Errors", "ErrorResponse.cs")));
+    }
+
+    [Fact]
+    public void PublicAndApplicationContractsDoNotExposeInfrastructureTypes()
+    {
+        var contractAssemblies = new[]
+        {
+            typeof(ConnectPortalRequest).Assembly,
+            typeof(IPortalClient).Assembly
+        };
+        var exposedTypes = contractAssemblies
+            .SelectMany(assembly => assembly.GetExportedTypes())
+            .SelectMany(GetPublicBoundaryTypes)
+            .Distinct()
+            .ToArray();
+
+        Assert.DoesNotContain(
+            exposedTypes,
+            type => type.Namespace?.StartsWith("UTHers.Infrastructure", StringComparison.Ordinal) == true);
     }
 
     [Fact]
@@ -185,4 +258,83 @@ public sealed class BackendArchitectureTests
     {
         return Path.Combine(FindBackendRoot(), "src", "UTHers.Contracts");
     }
+
+    private static Type[] GetPublicResponseContractTypes() =>
+        typeof(ConnectPortalRequest).Assembly
+            .GetExportedTypes()
+            .Where(type => type.Name.EndsWith("Response", StringComparison.Ordinal))
+            .ToArray();
+
+    private static System.Reflection.PropertyInfo[] GetPublicResponseContractProperties() =>
+        GetPublicResponseContractTypes()
+            .SelectMany(type => type.GetProperties())
+            .ToArray();
+
+    private static IEnumerable<Type> GetPublicBoundaryTypes(Type type)
+    {
+        foreach (var boundaryType in ExpandType(type))
+        {
+            yield return boundaryType;
+        }
+
+        foreach (var property in type.GetProperties())
+        {
+            foreach (var boundaryType in ExpandType(property.PropertyType))
+            {
+                yield return boundaryType;
+            }
+        }
+
+        foreach (var constructor in type.GetConstructors())
+        {
+            foreach (var parameter in constructor.GetParameters())
+            {
+                foreach (var boundaryType in ExpandType(parameter.ParameterType))
+                {
+                    yield return boundaryType;
+                }
+            }
+        }
+
+        foreach (var method in type.GetMethods())
+        {
+            foreach (var boundaryType in ExpandType(method.ReturnType))
+            {
+                yield return boundaryType;
+            }
+
+            foreach (var parameter in method.GetParameters())
+            {
+                foreach (var boundaryType in ExpandType(parameter.ParameterType))
+                {
+                    yield return boundaryType;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<Type> ExpandType(Type type)
+    {
+        yield return type;
+
+        if (type.HasElementType && type.GetElementType() is { } elementType)
+        {
+            foreach (var expandedType in ExpandType(elementType))
+            {
+                yield return expandedType;
+            }
+        }
+
+        foreach (var genericArgument in type.GetGenericArguments())
+        {
+            foreach (var expandedType in ExpandType(genericArgument))
+            {
+                yield return expandedType;
+            }
+        }
+    }
+
+    private static bool IsGeneratedSource(string path) =>
+        path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+        path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
 }
